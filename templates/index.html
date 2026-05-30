@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Зээлийн Скоринг Систем</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --approved: #10b981;
+      --review:   #f59e0b;
+      --declined: #ef4444;
+      --bg:       #0f172a;
+      --card:     rgba(255,255,255,0.05);
+      --border:   rgba(255,255,255,0.10);
+      --text:     #f1f5f9;
+      --muted:    #94a3b8;
+      --accent:   #6366f1;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% -20%, rgba(99,102,241,0.25) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 100%, rgba(16,185,129,0.15) 0%, transparent 50%);
+    }
+
+    .container { width: 100%; max-width: 560px; }
+
+    /* Header */
+    .header { text-align: center; margin-bottom: 2rem; }
+    .header .logo {
+      width: 56px; height: 56px;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      border-radius: 16px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; margin-bottom: 1rem;
+      box-shadow: 0 8px 32px rgba(99,102,241,0.4);
+    }
+    .header h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; }
+    .header p  { color: var(--muted); font-size: 0.9rem; margin-top: 0.35rem; }
+
+    /* Card */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    /* Form */
+    .form-grid { display: grid; gap: 1.25rem; }
+
+    .field label {
+      display: block;
+      font-size: 0.8rem; font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.6px;
+      margin-bottom: 0.45rem;
+    }
+
+    .input-wrap { position: relative; display: flex; align-items: center; }
+    .input-wrap .prefix {
+      position: absolute; left: 1rem;
+      color: var(--muted); font-weight: 600;
+      pointer-events: none; font-size: 0.9rem;
+    }
+    .input-wrap .suffix {
+      position: absolute; right: 1rem;
+      color: var(--muted); pointer-events: none; font-size: 0.8rem;
+    }
+
+    input, select {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: none;
+    }
+    .input-wrap.has-prefix input { padding-left: 2.5rem; }
+    .input-wrap.has-suffix input { padding-right: 3.5rem; }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+    }
+    input::placeholder { color: var(--muted); opacity: 0.7; }
+    select option { background: #1e293b; }
+
+    .select-wrap { position: relative; }
+    .select-wrap::after {
+      content: '▾';
+      position: absolute; right: 1rem; top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted); pointer-events: none; font-size: 0.85rem;
+    }
+
+    /* Button */
+    .btn-submit {
+      width: 100%; padding: 0.85rem; margin-top: 0.5rem;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      border: none; border-radius: 12px;
+      color: #fff; font-size: 1rem; font-weight: 700; letter-spacing: 0.3px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+    }
+    .btn-submit:hover  { opacity: 0.92; transform: translateY(-1px); }
+    .btn-submit:active { transform: translateY(0); }
+
+    /* Error */
+    .error-box {
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.4);
+      border-radius: 10px; padding: 0.8rem 1rem;
+      color: #fca5a5; font-size: 0.9rem; margin-top: 1.25rem;
+    }
+
+    /* Result */
+    .result { margin-top: 1.5rem; animation: fadeUp 0.5s ease; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Score ring */
+    .score-ring-wrap {
+      display: flex; flex-direction: column;
+      align-items: center; margin-bottom: 1.5rem;
+    }
+    .score-ring { position: relative; width: 160px; height: 160px; }
+    .score-ring svg { transform: rotate(-90deg); }
+    .score-ring .ring-bg   { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 10; }
+    .score-ring .ring-fill {
+      fill: none; stroke-width: 10; stroke-linecap: round;
+      stroke-dasharray: 408; stroke-dashoffset: 408;
+      transition: stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1);
+    }
+    .score-ring .center-text {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .score-number { font-size: 2.2rem; font-weight: 800; line-height: 1; }
+    .score-label  { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+    /* Decision badge */
+    .decision-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 1.2rem; border-radius: 999px;
+      font-weight: 700; font-size: 0.9rem; letter-spacing: 0.5px;
+      margin-top: 0.75rem;
+    }
+    .decision-badge.approved { background: rgba(16,185,129,0.15); color: var(--approved); border: 1px solid rgba(16,185,129,0.35); }
+    .decision-badge.review   { background: rgba(245,158,11,0.15);  color: var(--review);   border: 1px solid rgba(245,158,11,0.35); }
+    .decision-badge.declined { background: rgba(239,68,68,0.15);   color: var(--declined); border: 1px solid rgba(239,68,68,0.35); }
+
+    /* Meter */
+    .meter-wrap { margin-top: 1.5rem; }
+    .meter-header { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--muted); margin-bottom: 0.4rem; }
+    .meter-track  { height: 8px; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; position: relative; }
+    .meter-fill   { height: 100%; border-radius: 999px; transition: width 1.2s cubic-bezier(.4,0,.2,1); width: 0%; }
+    /* Zone markers */
+    .meter-markers { position: relative; height: 0; }
+    .meter-markers::before, .meter-markers::after {
+      content: '';
+      position: absolute; top: -8px;
+      width: 2px; height: 8px;
+      background: rgba(255,255,255,0.25);
+    }
+    .meter-markers::before { left: 45%; }
+    .meter-markers::after  { left: 70%; }
+    .meter-zones {
+      display: flex; justify-content: space-between;
+      font-size: 0.7rem; color: var(--muted); margin-top: 0.5rem;
+    }
+
+    /* Message */
+    .message-box {
+      border-radius: 12px; padding: 1rem 1.1rem;
+      font-size: 0.88rem; line-height: 1.5;
+      margin-top: 1.25rem;
+      display: flex; gap: 0.65rem; align-items: flex-start;
+    }
+    .message-box.approved { background: rgba(16,185,129,0.10); border: 1px solid rgba(16,185,129,0.25); color: #6ee7b7; }
+    .message-box.review   { background: rgba(245,158,11,0.10);  border: 1px solid rgba(245,158,11,0.25);  color: #fcd34d; }
+    .message-box.declined { background: rgba(239,68,68,0.10);   border: 1px solid rgba(239,68,68,0.25);   color: #fca5a5; }
+    .message-box .icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* Summary */
+    .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 1.25rem; }
+    .summary-item {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.65rem 0.85rem;
+    }
+    .summary-item .s-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .summary-item .s-value { font-size: 0.95rem; font-weight: 600; margin-top: 2px; }
+
+    .btn-reset {
+      width: 100%; padding: 0.75rem; margin-top: 1.25rem;
+      background: transparent; border: 1px solid var(--border);
+      border-radius: 12px; color: var(--muted);
+      font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-reset:hover { border-color: var(--accent); color: var(--text); }
+
+    .c-approved { color: var(--approved); }
+    .c-review   { color: var(--review); }
+    .c-declined { color: var(--declined); }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">🏦</div>
+    <h1>Зээлийн Скоринг</h1>
+    <p>AI-д суурилсан зээлийн эрсдэлийн үнэлгээ</p>
+  </div>
+
+  <div class="card">
+
+    {% if score is not defined or score is none %}
+    <!-- FORM -->
+    <form method="POST" action="/predict">
+      <div class="form-grid">
+
+        <div class="field">
+          <label>Сарын цалин</label>
+          <div class="input-wrap has-prefix has-suffix">
+            <span class="prefix">₮</span>
+            <input type="number" name="monthly_income" placeholder="1,500,000"
+                   min="1" step="1000"
+                   value="{{ monthly_income or '' }}" required />
+            <span class="suffix">MNT</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Ажил эрхлэлт</label>
+          <div class="select-wrap">
+            <select name="employment_type" required>
+              <option value="">— Мэргэжлээ сонгох —</option>
+              {% for opt in employment_options %}
+              <option value="{{ opt }}"
+                {% if employment_type == opt %}selected{% endif %}>
+                {{ opt }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Ажилласан жил</label>
+          <div class="input-wrap has-suffix">
+            <input type="number" name="employment_years" placeholder="3"
+                   min="0" max="50" step="0.5"
+                   value="{{ employment_years or '' }}" required />
+            <span class="suffix">жил</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Хүссэн зээлийн дүн</label>
+          <div class="input-wrap has-prefix has-suffix">
+            <span class="prefix">₮</span>
+            <input type="number" name="requested_amount" placeholder="10,000,000"
+                   min="1" step="100000"
+                   value="{{ requested_amount or '' }}" required />
+            <span class="suffix">MNT</span>
+          </div>
+        </div>
+      </div>
+
+      {% if error %}
+      <div class="error-box">⚠ {{ error }}</div>
+      {% endif %}
+
+      <button type="submit" class="btn-submit">Скор тооцоолох →</button>
+    </form>
+
+    {% else %}
+    <!-- RESULT -->
+    {% set css = decision.css %}
+
+    {% if css == 'approved' %}
+      {% set ring_color = '#10b981' %}
+      {% set grad = 'linear-gradient(90deg,#10b981,#34d399)' %}
+    {% elif css == 'review' %}
+      {% set ring_color = '#f59e0b' %}
+      {% set grad = 'linear-gradient(90deg,#f59e0b,#fbbf24)' %}
+    {% else %}
+      {% set ring_color = '#ef4444' %}
+      {% set grad = 'linear-gradient(90deg,#ef4444,#f87171)' %}
+    {% endif %}
+
+    {% set pct        = (score / 1000 * 100) | round(2) %}
+    {% set dashoffset = (408 * (1 - score / 1000)) | round(2) %}
+
+    <div class="result">
+      <!-- Ring -->
+      <div class="score-ring-wrap">
+        <div class="score-ring">
+          <svg viewBox="0 0 140 140" width="160" height="160">
+            <circle class="ring-bg"   cx="70" cy="70" r="65" />
+            <circle class="ring-fill" cx="70" cy="70" r="65"
+                    id="ringFill"
+                    style="stroke:{{ ring_color }}; stroke-dashoffset:{{ dashoffset }};" />
+          </svg>
+          <div class="center-text">
+            <span class="score-number c-{{ css }}" id="scoreNum">0</span>
+            <span class="score-label">скор</span>
+          </div>
+        </div>
+        <div class="decision-badge {{ css }}">
+          <span>{{ decision.icon }}</span>
+          <span>{{ decision.label }}</span>
+        </div>
+      </div>
+
+      <!-- Meter -->
+      <div class="meter-wrap">
+        <div class="meter-header">
+          <span>0</span>
+          <span style="color:#ef4444;font-weight:600">450</span>
+          <span style="color:#f59e0b;font-weight:600">700</span>
+          <span>1000</span>
+        </div>
+        <div class="meter-track">
+          <div class="meter-fill" id="meterFill"
+               style="background:{{ grad }};"></div>
+        </div>
+        <div class="meter-markers"></div>
+        <div class="meter-zones">
+          <span style="color:#ef4444">Татгалзах</span>
+          <span style="color:#f59e0b">Гар шалгалт</span>
+          <span style="color:#10b981">Зөвшөөрөх</span>
+        </div>
+      </div>
+
+      <!-- Message -->
+      <div class="message-box {{ css }}">
+        <span class="icon">{{ decision.icon }}</span>
+        <span>{{ decision.message }}</span>
+      </div>
+
+      <!-- Summary -->
+      <div class="summary">
+        <div class="summary-item">
+          <div class="s-label">Сарын цалин</div>
+          <div class="s-value">₮{{ '{:,.0f}'.format(monthly_income) }}</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Зээлийн дүн</div>
+          <div class="s-value">₮{{ '{:,.0f}'.format(requested_amount) }}</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Ажил мэргэжил</div>
+          <div class="s-value">{{ employment_type }}</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Ажилласан жил</div>
+          <div class="s-value">{{ employment_years }} жил</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">Зээл / Цалингийн харьцаа</div>
+          <div class="s-value">{{ (requested_amount / monthly_income) | round(1) }}x</div>
+        </div>
+        <div class="summary-item">
+          <div class="s-label">DTI (жилийн)</div>
+          <div class="s-value">{{ ((requested_amount / (monthly_income * 12)) * 100) | round(1) }}%</div>
+        </div>
+      </div>
+
+      <button class="btn-reset" onclick="history.back()">← Дахин тооцоолох</button>
+    </div>
+
+    <script>
+      const TARGET = {{ score }};
+      const PCT    = {{ pct }};
+
+      // Animate score counter
+      let cur = 0;
+      const step = TARGET / 75;
+      const timer = setInterval(() => {
+        cur = Math.min(cur + step, TARGET);
+        document.getElementById('scoreNum').textContent = Math.round(cur);
+        if (cur >= TARGET) clearInterval(timer);
+      }, 16);
+
+      // Animate meter
+      setTimeout(() => {
+        document.getElementById('meterFill').style.width = PCT + '%';
+      }, 50);
+    </script>
+    {% endif %}
+
+  </div>
+</div>
+</body>
+</html>

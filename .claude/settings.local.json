@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(pip install scikit-learn flask)",
+      "PowerShell(cd \"c:\\\\Users\\\\97688\\\\Desktop\\\\score-model\"; $env:PYTHONIOENCODING=\"utf-8\"; python -W ignore test_model.py)",
+      "PowerShell(cd \"c:\\\\Users\\\\97688\\\\Desktop\\\\score-model\"; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $env:PYTHONIOENCODING=\"utf-8\"; python -W ignore test_model.py)",
+      "PowerShell(cd \"c:\\\\Users\\\\97688\\\\Desktop\\\\score-model\"; $env:PYTHONIOENCODING=\"utf-8\"; python -W ignore app.py)",
+      "PowerShell(Invoke-WebRequest -Uri \"http://127.0.0.1:5000\" -UseBasicParsing)"
+    ]
+  }
+}
